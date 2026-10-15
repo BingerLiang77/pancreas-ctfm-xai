@@ -15,8 +15,23 @@ This repository outlines the technical roadmap, data preprocessing guidelines, a
 
 ---
 
-## 2. Implementation Pipeline (Tailored for Small-Sample Scenarios)
-Given our current dataset size (~100 pancreatic tumor CT cases):
+## 2. External Dataset & Leakage-Free Sampling: PanTS
+To train and validate our downstream classification and XAI pipelines, we leverage the **PanTS** (*Pancreatic Tumor Segmentation Dataset*, [arXiv:2507.01291](https://arxiv.org/abs/2507.01291), [MrGiovanni/PanTS](https://github.com/MrGiovanni/PanTS)):
+
+* **Hugging Face Dataset Access Link**:
+  * Official Hugging Face repository: [huggingface.co/datasets/BodyMaps/PanTSMini](https://huggingface.co/datasets/BodyMaps/PanTSMini) (and full training partition releases indexed under the `BodyMaps` organization on Hugging Face).
+  * Official download script available in the GitHub repo (`bash download_PanTS_data.sh`).
+* **Zero-Leakage & Anti-Contamination Sampling Protocol**:
+  * **Strict Exclusion**: To prevent data contamination against CT-FM's pre-training corpus (sourced from NCI IDC / TCIA), we strictly **exclude** legacy cohorts including `TCIA-PDAC`, `MSD-Pancreas (Task07)`, and early `KiTS` mirrors.
+  * **Inclusion & Stratified Sampling (~100 Cases)**:
+    1. Filter for contrast-enhanced scans in the **portal venous or late arterial phases** with slice thickness $\le 3.0\text{ mm}$.
+    2. Curate ~100 cases using stratified multi-center sampling across unseen institutional centers and scanner vendors.
+    3. Map clinical/pathological metadata to binary labels: **Benign / Cystic Neoplasms (0)** vs. **Malignant / PDAC (1)**.
+
+---
+
+## 3. Implementation Pipeline (Tailored for Small-Sample Scenarios)
+Given our curated ~100 pancreatic tumor CT cohort:
 
 1. **Stage 1: Feature Extraction (Linear Probing / Frozen Backbone)**
    * **Freeze** the pre-trained CT-FM Encoder weights entirely to prevent overfitting on the small cohort.
@@ -28,7 +43,7 @@ Given our current dataset size (~100 pancreatic tumor CT cases):
 
 ---
 
-## 3. Input Data Specifications (Pre-processing Guidelines)
+## 4. Input Data Specifications (Pre-processing Guidelines)
 Since CT-FM operates strictly on native 3D convolutions, inputs **must be continuous, localized 3D voxel patches**:
 
 | Processing Dimension | Standard / Recommendation | Notes & Rationales |
@@ -41,7 +56,7 @@ Since CT-FM operates strictly on native 3D convolutions, inputs **must be contin
 
 ---
 
-## 4. Downstream Objective: XAI Disagreement & Trustworthiness Estimation
+## 5. Downstream Objective: XAI Disagreement & Trustworthiness Estimation
 The core research contribution focuses on **evaluating the clinical reliability of model explanations**:
 
 * **Two Complementary XAI Approaches**:
@@ -56,7 +71,21 @@ The core research contribution focuses on **evaluating the clinical reliability 
 
 ---
 
-## 5. Bilingual Reference (附中文版本)
+## 6. Next Steps & Action Items (后续具体工作规划)
+1. **Metadata Inspection & Cohort Selection**:
+   * Inspect the PanTS metadata table, apply the anti-leakage exclusion filter (drop TCIA / MSD cohorts), and select ~100 cases with stratified center distribution and binary benign/malignant labels.
+2. **Patch Extraction Pipeline**:
+   * Write a Python/MONAI preprocessing script to crop localized 3D patches (`16x96x96` or `32x96x96`) around the tumor centroid, apply soft-tissue HU clipping (`[-100, 250]`), and save normalized tensors.
+3. **Feature Extraction & Baseline Classification**:
+   * Load CT-FM `SegResEncoder` pre-trained weights, perform forward-only feature extraction, and train a lightweight classifier (Linear Probing / LightGBM) to record benchmark AUROC / F1.
+4. **3D XAI Pipeline Implementation**:
+   * Implement 3D Grad-CAM (using high-level convolutional layers) and 3D Integrated Gradients (with baseline and step size optimized for M4 24GB memory).
+5. **Divergence vs. Fidelity Quantification**:
+   * Compute pairwise voxel agreement (3D Dice / IoU) between Grad-CAM and IG, and benchmark against PanTS ground-truth lesion masks to test the core trustworthiness hypothesis.
+
+---
+
+## 7. Bilingual Reference (附中文版本)
 
 <details>
 <summary>点击展开中文版讨论便签</summary>
@@ -69,20 +98,34 @@ The core research contribution focuses on **evaluating the clinical reliability 
   * 基于 14.8 万例 3D CT 扫描无监督对比学习预训练，骨干结构为 3D `SegResEncoder`（约 77M 参数）。
   * 具备通用的 3D 解剖表征与病灶感知能力，直接作为下游分类的特征提取器（Backbone）。
 
-### 2. 实施方案（适配小样本）
-1. **阶段一：特征提取（Linear Probing / 冻结骨干）**：冻结 Encoder 权重，一次性提取高维特征向量。
-2. **阶段二：下游分类头训练**：轻量分类头（Pooling + MLP / LightGBM），二分类目标（良性 vs. 恶性）。
+### 2. 外部数据集与零泄漏抽样方案：PanTS
+* **Hugging Face 数据集地址**：
+  * `https://huggingface.co/datasets/BodyMaps/PanTSMini`（及 Hugging Face `BodyMaps` 机构下的 PanTS 数据分区）。
+* **防污染抽样策略（约 100 例）**：
+  * **坚决剔除**：TCIA-PDAC、MSD-Pancreas 等老旧数据集（防止与 CT-FM 预训练的 IDC 库重合造成数据泄漏）。
+  * **保留多中心子集**：保留门脉期/动脉期高质量增强 CT（层厚 $\le 3\text{mm}$），按医院机构和良恶性（PDAC vs 囊性/良性）分层随机抽取约 100 例。
 
-### 3. 输入数据规范
+### 3. 实施方案（适配小样本）
+1. **阶段一：特征提取（Linear Probing / 冻结骨干）**：冻结 Encoder 权重，一次性提取高维特征向量。
+2. **阶段二：下游分类头训练**：轻量分类头（Pooling + MLP / LightGBM），二分类目标（良性 vs. 恶性）。在 Mac M4 (24GB) 上可快速完成。
+
+### 4. 输入数据规范
 * **张量形状**：`(1, 16, 96, 96)` 或 `(1, 32, 96, 96)`。
-* **连续切片**：必须是物理连续切片，不得少于 16 层。
+* **连续切片**：必须是物理连续切片，不得少于 16 层（防止多级下采样越界）。
 * **平面尺寸**：$96 \times 96$ 或 $128 \times 128$（局部 ROI 裁剪）。
 * **窗宽窗位**：腹部软组织窗 $[-100, 250]\text{ HU}$，归一化到 $[0, 1]$。
 * **重采样**：各向同性重采样至 $1.0 \times 1.0 \times 1.0 \text{ mm}^3$。
 
-### 4. XAI 解释分歧度与可信度
+### 5. XAI 解释分歧度与可信度
 * **方法组合**：Grad-CAM（宏观语义） + Integrated Gradients（微观体素）。
 * **核心假设**：高共识 $\rightarrow$ 高可信；高分歧 $\rightarrow$ 触发不可信警报（如捷径学习、伪影干扰）。
 * **定量指标**：对齐分辨率后计算 3D Dice / IoU，与真实病灶 Mask 验证命中率。
+
+### 6. 后续具体工作规划
+1. **元数据过滤与抽样**：下载元数据表，排除 TCIA/MSD，分层抽取约 100 例多中心良恶性病例。
+2. **3D Patch 裁剪脚本开发**：基于 MONAI/NiBabel 裁剪 $16 \times 96 \times 96$ 的局部肿瘤 ROI。
+3. **特征提取与分类基线**：加载 CT-FM 提取特征，跑通 LightGBM / MLP 分类基线。
+4. **3D Grad-CAM 与 3D IG 部署**：基于 Captum 编写适配 M4 统一内存的串行累加 XAI 计算脚本。
+5. **分歧度与真实病灶命中率关联分析**：评估 XAI 分歧度预测可信度的有效性。
 
 </details>
