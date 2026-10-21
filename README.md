@@ -98,32 +98,53 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Preparing Your Data
+### 2. Getting the Data (PanTS)
 
-Organize your raw dataset as follows:
+This repo contains **no CT images or annotations**, only tables. Download PanTS from the official sources
+(the pilot used the `PanTSMini` release):
+
+| Resource | Link |
+| :--- | :--- |
+| Official GitHub (scripts, docs) | https://github.com/MrGiovanni/PanTS |
+| Hugging Face (`PanTSMini` images + `metadata.xlsx`) | https://huggingface.co/datasets/BodyMaps/PanTSMini |
+| Paper | https://arxiv.org/abs/2507.01291 |
+
+```bash
+# Option A: official scripts (images ~300 GB in total, plus labels)
+git clone https://github.com/MrGiovanni/PanTS.git
+cd PanTS
+bash download_PanTS_data.sh
+bash download_PanTS_label.sh
+
+# Option B: only the chunk used by this pilot (cases 1-1000) from Hugging Face
+pip install -U "huggingface_hub[cli]"
+huggingface-cli download BodyMaps/PanTSMini PanTSMini_ImageTr_00000001_00001000.tar.gz metadata.xlsx \
+    --repo-type dataset --local-dir ./PanTS_data
+tar -xzf PanTS_data/PanTSMini_ImageTr_00000001_00001000.tar.gz -C PanTS_data
+```
+
+The segmentation labels (`PanTSMini_Label`) come from the official `download_PanTS_label.sh` script.
+Check the PanTS repository for the current label location if the script changes.
+
+> **License:** PanTS is released under **CC BY-NC-SA 4.0** (non-commercial, share-alike, attribution
+> required). Respect these terms when using or redistributing the data and derived tables.
+
+Expected layout (point `PANTS_DATA_ROOT` at the parent folder; folder names are set in `src/config.py`):
 
 ```
-data_root/
-├── images/
-│   ├── Case_00000001/
-│   │   └── ct.nii.gz
-│   └── Case_00000002/
-│       └── ct.nii.gz
-├── labels/
-│   ├── Case_00000001/
-│   │   └── segmentations/
-│   │       ├── pancreas.nii.gz
-│   │       └── pancreatic_lesion.nii.gz
-│   └── Case_00000002/
-│       └── segmentations/
-│           └── pancreas.nii.gz
-└── metadata.xlsx (or metadata.csv)
+$PANTS_DATA_ROOT/
+├── PanTSMini_ImageTr_00000001_00001000/
+│   └── PanTS_00000001/ct.nii.gz
+└── PanTSMini_Label 2/                  # labels folder, name as in config.py (LABEL_DIR)
+    └── PanTS_00000001/segmentations/
+        ├── pancreas.nii.gz
+        └── pancreatic_lesion.nii.gz
 ```
 
-> **Metadata Columns Required**:
-> - `PanTS ID`: Patient/Scan identifier (e.g. `PanTS_00000029`).
-> - `tumor?`: Binary ground truth label (`0` for normal/benign, `1` for tumor/malignant).
-> - `ct phase`: Acquisition phase (`Non-contrast`, `Arterial`, or `Venous`).
+> **Metadata columns required** (`data/metadata.xlsx`, same file as on Hugging Face):
+> - `PanTS ID`: scan identifier (e.g. `PanTS_00000029`).
+> - `tumor?`: binary label (`0` normal/benign, `1` tumour).
+> - `ct phase`: `Non-contrast`, `Arterial` or `Venous`.
 
 ---
 
