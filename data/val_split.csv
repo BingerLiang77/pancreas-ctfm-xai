@@ -1,0 +1,11 @@
+PanTS ID,shape,spacing,ct phase,sex,age,manufacturer,manufacturer model,study type,site,site nationality,study year,tumor?,fold
+PanTS_00000124,"(189, 364, 204)","(2.5, 0.779297, 0.779297)",Non-contrast,F,35.0,,,,1 Site,US,,0,0
+PanTS_00000153,"(426, 275, 136)","(0.875, 0.875, 1.25)",Non-contrast,,,,,,1 Site,CN,,0,0
+PanTS_00000185,"(400, 281, 177)","(0.742188, 0.742188, 1.25)",Arterial,,,,,,1 Site,CN,,0,0
+PanTS_00000215,"(222, 155, 235)","(1.5, 1.5, 1.5)",Venous,M,59.0,SIEMENS,somatom definition flash,ct thorax-neck,I,CH,2012; 2016; 2020,0,0
+PanTS_00000477,"(512, 412, 242)","(0.78125, 0.78125, 0.8)",Non-contrast,M,70.0,SIEMENS,Sensation 64,ct abdomen-colonography,15 Sites,US,,0,0
+PanTS_00000551,"(462, 267, 88)","(0.782, 0.782, 5.0)",Non-contrast,,,,,,2 Sites,CN,,0,0
+PanTS_00000617,"(512, 414, 190)","(0.705078, 0.705078, 1.25)",Non-contrast,F,56.0,,,,1 Site,PL,06.2016-04.2021,0,0
+PanTS_00000684,"(266, 158, 152)","(1.5, 1.5, 1.5)",Arterial,F,84.0,Philips,iqon - spectral ct,ct heart-thorakale aorta,B,CH,2012; 2016; 2020,0,0
+PanTS_00000849,"(505, 313, 101)","(0.871094, 0.871094, 2.5)",Venous,,,,,,1 Site,US,,1,0
+PanTS_00000850,"(504, 377, 102)","(0.763, 0.763, 3.0)",Venous,M,33.0,,,,1 Site,PL,06.2016-04.2021,0,0
